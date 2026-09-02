@@ -1,0 +1,22 @@
+# Build configuration for the frontend image.
+#
+# This file exists for one reason: the backend can be built with
+# `gcloud builds submit --tag`, but the frontend cannot. Vite inlines
+# environment variables into the bundle at BUILD time, so the backend URL has
+# to reach `docker build` as a --build-arg - and `--tag` offers no way to pass
+# one. A --config build does.
+#
+# Both substitutions are supplied by deploy.sh.
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --build-arg
+      - VITE_API_BASE=${_VITE_API_BASE}
+      - --tag
+      - ${_IMAGE}
+      - .
+
+images:
+  - ${_IMAGE}
