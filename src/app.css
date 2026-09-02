@@ -204,8 +204,123 @@ button:disabled {
   border-radius: 16px 16px 4px 16px;
 }
 
-.answer {
-  white-space: pre-wrap;
+/* ------------------------------------------------------------
+   Rendered answer
+   ------------------------------------------------------------
+   No white-space: pre-wrap here. Markdown already turns blank lines into
+   paragraphs, and honouring the raw newlines as well would double every gap.
+
+   The whole block is scoped under .markdown so these rules only reach model
+   output, never the rest of the interface. */
+
+.answer > :first-child {
+  margin-top: 0;
+}
+
+.answer > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown p {
+  margin: 0 0 10px;
+}
+
+.markdown ul,
+.markdown ol {
+  margin: 0 0 10px;
+  padding-left: 20px;
+}
+
+.markdown li {
+  margin: 3px 0;
+}
+
+.markdown li::marker {
+  color: var(--muted);
+}
+
+.markdown strong {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.markdown em {
+  font-style: italic;
+}
+
+/* Order IDs and codes. Tabular figures so a column of them lines up when the
+   model does put them in a list. */
+.markdown code {
+  padding: 1px 5px;
+  background: var(--plane);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.markdown pre {
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  overflow-x: auto;
+  background: var(--plane);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.markdown pre code {
+  padding: 0;
+  background: none;
+  border: none;
+}
+
+.markdown blockquote {
+  margin: 0 0 10px;
+  padding-left: 12px;
+  border-left: 3px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.markdown a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Headings are asked against in the prompt, so these only exist to stop one
+   looking absurd on the rare turn the model emits it anyway. */
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.markdown h4 {
+  margin: 12px 0 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Same reasoning as the headings: tables are asked against because the Table
+   tab already shows the rows, but an unstyled one would break the layout. */
+.markdown table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  margin: 0 0 10px;
+  font-size: 13px;
+}
+
+.markdown th,
+.markdown td {
+  padding: 5px 9px;
+  text-align: left;
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.markdown th {
+  color: var(--muted);
+  font-weight: 600;
 }
 
 .thinking {

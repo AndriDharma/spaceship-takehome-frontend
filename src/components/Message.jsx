@@ -1,4 +1,5 @@
 import AnalysisPanel from './AnalysisPanel'
+import Markdown from './Markdown'
 
 /**
  * One turn in the conversation.
@@ -29,7 +30,7 @@ export default function Message({ message, isActive, onOpenReport }) {
         </div>
       )}
 
-      {message.text && <div className="answer">{message.text}</div>}
+      {message.text && <Markdown>{message.text}</Markdown>}
 
       {message.error && <div className="error-note">{message.error}</div>}
 
