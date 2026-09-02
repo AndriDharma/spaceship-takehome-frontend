@@ -5,6 +5,7 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  ComposedChart,
   Legend,
   Line,
   LineChart,
@@ -34,6 +35,12 @@ const MONTH_LABELS = [
 ]
 
 function formatNumber(value) {
+  // A range area carries [low, high] as a single value. Without this it would
+  // stringify to "12,20" in the tooltip.
+  if (Array.isArray(value)) {
+    return value.map(formatNumber).join(' – ')
+  }
+
   if (typeof value !== 'number' || Number.isNaN(value)) return value
 
   const size = Math.abs(value)
@@ -126,11 +133,20 @@ function foldOther(rows, names) {
 function ChartTooltip({ active, payload, label, isDate }) {
   if (!active || !payload?.length) return null
 
+  // A null series still appears in the payload. The forecast chart has one of
+  // its two lines null at every x position, so without this every tooltip
+  // would carry a blank row.
+  const rows = payload.filter(
+    (entry) => entry.value !== null && entry.value !== undefined,
+  )
+
+  if (!rows.length) return null
+
   return (
     <div className="tooltip">
       <div className="tooltip-label">{isDate ? formatDate(label) : label}</div>
 
-      {payload.map((entry) => (
+      {rows.map((entry) => (
         <div className="tooltip-row" key={entry.dataKey ?? entry.name}>
           <span className="swatch" style={{ background: entry.color }} />
           <span className="tooltip-name">{entry.name}</span>
@@ -209,11 +225,41 @@ export default function DynamicChart({ config, theme = 'light', height = 320 }) 
     series = folded.names
   }
 
+  // An uncertainty band behind one of the lines - only the forecast sets this.
+  // Not applicable to a pivoted chart, where the series are values rather than
+  // the fixed columns the bounds were computed against.
+  const band = seriesKey ? null : config.band
+
+  if (band) {
+    // Recharts draws a range area from a single [low, high] value, but the
+    // backend sends two plain columns - a scalar payload the data table can
+    // also read. Pairing them is a rendering concern, and this component is
+    // the only thing that knows about Recharts.
+    rows = rows.map((row) => {
+      const low = row[band.lowKey]
+      const high = row[band.highKey]
+
+      return {
+        ...row,
+        _band: low === null || low === undefined ? null : [low, high],
+      }
+    })
+  }
+
   const stacked = Boolean(config.stacked) || chartType === 'stacked_bar'
   const isBar = chartType === 'bar' || chartType === 'stacked_bar'
   const isArea = chartType === 'area'
 
-  const ChartComponent = isBar ? BarChart : isArea ? AreaChart : LineChart
+  // LineChart will not accept an Area child, so a banded chart has to be
+  // composed. Everything without a band keeps its original single-mark
+  // component.
+  const ChartComponent = band
+    ? ComposedChart
+    : isBar
+      ? BarChart
+      : isArea
+        ? AreaChart
+        : LineChart
 
   const axisStyle = { fill: ink.muted, fontSize: 12 }
 
@@ -252,6 +298,26 @@ export default function DynamicChart({ config, theme = 'light', height = 320 }) 
             iconType="circle"
             iconSize={8}
             wrapperStyle={{ fontSize: 12, color: ink.muted, paddingTop: 8 }}
+          />
+        )}
+
+        {/* Before the lines, so it sits behind them - child order is z order.
+            No stroke: an edge would read as a third series rather than as the
+            edge of an envelope. */}
+        {band && (
+          <Area
+            type="monotone"
+            dataKey="_band"
+            name={band.label || 'Interval'}
+            stroke="none"
+            fill={seriesColor(theme, Math.max(series.indexOf(band.ofKey), 0))}
+            fillOpacity={0.16}
+            // The band is an attribute of the line it wraps, not a series of
+            // its own, so it stays out of the legend.
+            legendType="none"
+            connectNulls={false}
+            dot={false}
+            activeDot={false}
           />
         )}
 

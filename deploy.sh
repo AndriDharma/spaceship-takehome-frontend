@@ -156,27 +156,63 @@ SERVICE_URL="$(
 #
 # The two services are deployed independently, so the backend cannot know this
 # URL in advance. Without it in CORS_ORIGINS the browser blocks every call and
-# the site loads but does nothing - a confusing failure, so it is worth
-# closing here rather than leaving as a step to remember.
+# the site loads but does nothing.
 #
-# Set BACKEND_SERVICE_NAME in .env to have this happen automatically.
+# This block REPORTS; it does not write. An earlier version patched the
+# backend's CORS_ORIGINS directly, and that turned out to fight the backend's
+# own deploy script: that one uses --set-env-vars, which replaces the whole
+# environment from the backend's .env, while a patch here writes a single key.
+# Whichever ran last won, so CORS broke on alternate deploys.
+#
+# The backend's .env is the single source of truth. Set BACKEND_SERVICE_NAME
+# here only to have this check whether that value is currently correct.
 
 if [ -n "${BACKEND_SERVICE_NAME:-}" ]; then
-  echo
-  echo "Allowing ${SERVICE_URL} as a CORS origin on ${BACKEND_SERVICE_NAME}..."
+  CURRENT_CORS="$(
+    gcloud run services describe "$BACKEND_SERVICE_NAME" \
+      --region "$REGION" \
+      --format="yaml(spec.template.spec.containers[0].env)" 2>/dev/null \
+      | grep -A1 'name: CORS_ORIGINS' \
+      | grep 'value:' \
+      | sed 's/.*value: *//' \
+      | tr -d "'\"" || true
+  )"
 
-  gcloud run services update "$BACKEND_SERVICE_NAME" \
-    --region "$REGION" \
-    --update-env-vars "CORS_ORIGINS=${SERVICE_URL}"
+  echo
+  echo "Backend CORS_ORIGINS is currently: ${CURRENT_CORS:-(empty - all origins allowed)}"
+
+  # Commas on both ends so a substring match cannot succeed against a longer
+  # URL that merely starts with this one.
+  case ",${CURRENT_CORS}," in
+    *",${SERVICE_URL},"*)
+      echo "This frontend's origin is already allowed."
+      ;;
+    *)
+      if [ -z "$CURRENT_CORS" ]; then
+        echo "Empty means the backend falls back to allowing every origin, so the"
+        echo "site will work - but name the origin explicitly before submitting."
+      else
+        echo
+        echo "WARNING: this frontend's origin is NOT in that list, so every request"
+        echo "         will be blocked by the browser."
+      fi
+
+      echo
+      echo "Put this in the BACKEND's .env, then redeploy the backend:"
+      echo
+      echo "  CORS_ORIGINS=${CURRENT_CORS:+${CURRENT_CORS},}${SERVICE_URL}"
+      echo
+      echo "Or apply it now, until the next backend deploy overwrites it:"
+      echo
+      echo "  gcloud run services update ${BACKEND_SERVICE_NAME} \\"
+      echo "    --region ${REGION} \\"
+      echo "    --update-env-vars \"CORS_ORIGINS=${CURRENT_CORS:+${CURRENT_CORS},}${SERVICE_URL}\""
+      ;;
+  esac
 else
   echo
-  echo "NOTE: BACKEND_SERVICE_NAME is not set, so the backend's CORS_ORIGINS was"
-  echo "      not updated. The site will load but every request will be blocked"
-  echo "      by the browser until you run:"
-  echo
-  echo "  gcloud run services update YOUR_BACKEND_SERVICE \\"
-  echo "    --region ${REGION} \\"
-  echo "    --update-env-vars CORS_ORIGINS=${SERVICE_URL}"
+  echo "NOTE: set CORS_ORIGINS in the BACKEND's .env to include this origin:"
+  echo "  ${SERVICE_URL}"
 fi
 
 echo
