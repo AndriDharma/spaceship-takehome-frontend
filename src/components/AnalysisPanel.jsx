@@ -17,7 +17,11 @@ const STATUS_LABEL = {
 }
 
 export default function AnalysisPanel({ progress, explain }) {
-  const [open, setOpen] = useState(false)
+  // Open by default. The steps are most useful while they are still running -
+  // collapsed, the panel showed nothing during the part of the turn where the
+  // user is actually waiting. The toggle stays so a finished turn can be
+  // folded away once it has been read.
+  const [open, setOpen] = useState(true)
 
   const hasContent = (progress && progress.length > 0) || explain
 

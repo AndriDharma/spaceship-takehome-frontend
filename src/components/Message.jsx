@@ -47,7 +47,7 @@ export default function Message({ message, isActive, onOpenReport }) {
           className={`report-button ${isActive ? 'active' : ''}`}
           onClick={() => onOpenReport(message)}
         >
-          Report agent →
+          Visualization →
         </button>
       )}
     </div>
