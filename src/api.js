@@ -30,20 +30,6 @@ export function getDashboard() {
   return getJson('/api/dashboard')
 }
 
-export async function regenerateChart(turnId) {
-  const response = await fetch(url('/api/chart'), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ turn_id: turnId }),
-  })
-
-  if (!response.ok) {
-    throw new Error(`${response.status} ${response.statusText}`)
-  }
-
-  return response.json()
-}
-
 /**
  * Parse one Server-Sent Events frame.
  *

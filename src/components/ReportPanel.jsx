@@ -1,6 +1,3 @@
-import { useState } from 'react'
-
-import { regenerateChart } from '../api'
 import Dashboard from './Dashboard'
 import DataTable from './DataTable'
 import DynamicChart from './DynamicChart'
@@ -11,32 +8,16 @@ import DynamicChart from './DynamicChart'
  * Three tabs over one surface. Dashboard is the landing view, so a reviewer
  * sees KPIs before typing anything; asking a question switches to Chart on its
  * own and the tab strip is how you get back.
+ *
+ * The header carries no controls. The theme toggle floats in that corner, and
+ * anything placed beside it collides with it.
  */
-export default function ReportPanel({ message, tab, onTabChange, theme, onChartUpdated }) {
-  const [busy, setBusy] = useState(false)
-  const [retryError, setRetryError] = useState('')
-
+export default function ReportPanel({ message, tab, onTabChange, theme }) {
   const chart = message?.chart
   const rows = message?.rows || []
 
   const hasChart = Boolean(chart)
   const hasRows = rows.length > 0
-
-  const retry = async () => {
-    if (!message?.turnId) return
-
-    setBusy(true)
-    setRetryError('')
-
-    try {
-      const result = await regenerateChart(message.turnId)
-      onChartUpdated(message.id, result.chart, result.chart_skipped)
-    } catch (error) {
-      setRetryError(error.message)
-    } finally {
-      setBusy(false)
-    }
-  }
 
   return (
     <section className="report-pane">
@@ -52,44 +33,27 @@ export default function ReportPanel({ message, tab, onTabChange, theme, onChartU
             {chart?.description && <p>{chart.description}</p>}
           </div>
         )}
-
-        {tab === 'chart' && message?.turnId && (
-          <button
-            type="button"
-            className="ghost"
-            onClick={retry}
-            disabled={busy}
-            title="Ask the model to choose a chart again"
-          >
-            {busy ? 'Regenerating…' : 'Regenerate'}
-          </button>
-        )}
       </div>
 
       <div className="report-body">
         {tab === 'dashboard' && <Dashboard theme={theme} />}
 
-        {tab === 'chart' && (
-          <>
-            {hasChart ? (
-              <>
-                <DynamicChart config={chart} theme={theme} height={360} />
+        {tab === 'chart' &&
+          (hasChart ? (
+            <>
+              <DynamicChart config={chart} theme={theme} height={360} />
 
-                {/* The model's one-line reading of the data. Kept below the
-                    chart so the chart is what gets looked at first. */}
-                {chart.insight && <p className="insight">{chart.insight}</p>}
-              </>
-            ) : (
-              <div className="empty">
-                {message?.chartSkipped
-                  ? `No chart: ${message.chartSkipped}`
-                  : 'Ask a question to see a chart here.'}
-              </div>
-            )}
-
-            {retryError && <div className="error-note">{retryError}</div>}
-          </>
-        )}
+              {/* The model's one-line reading of the data. Kept below the
+                  chart so the chart is what gets looked at first. */}
+              {chart.insight && <p className="insight">{chart.insight}</p>}
+            </>
+          ) : (
+            <div className="empty">
+              {message?.chartSkipped
+                ? `No chart: ${message.chartSkipped}`
+                : 'Ask a question to see a chart here.'}
+            </div>
+          ))}
 
         {tab === 'table' && (
           <DataTable

@@ -13,7 +13,7 @@ export default function App() {
   const sessionId = useMemo(() => crypto.randomUUID(), [])
 
   const { theme, toggle } = useTheme()
-  const { messages, isStreaming, send, stop, setChartFor } = useChat(sessionId)
+  const { messages, isStreaming, send, stop } = useChat(sessionId)
 
   const [selectedId, setSelectedId] = useState(null)
   const [tab, setTab] = useState('dashboard')
@@ -66,7 +66,6 @@ export default function App() {
         tab={tab}
         onTabChange={setTab}
         theme={theme}
-        onChartUpdated={setChartFor}
       />
 
       <button

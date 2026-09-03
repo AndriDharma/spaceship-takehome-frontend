@@ -165,16 +165,5 @@ export function useChat(sessionId) {
     abortRef.current?.abort()
   }, [])
 
-  /** Replace one turn's chart, after a regenerate. */
-  const setChartFor = useCallback((messageId, chart, skipped) => {
-    setMessages((previous) =>
-      previous.map((message) =>
-        message.id === messageId
-          ? { ...message, chart, chartSkipped: skipped || '' }
-          : message,
-      ),
-    )
-  }, [])
-
-  return { messages, isStreaming, send, stop, setChartFor }
+  return { messages, isStreaming, send, stop }
 }
